@@ -1,0 +1,17 @@
+[[start, [empty, full]],
+[empty, [empty, full]],
+[full, [full, ready]],
+[ready, [ready, brew]],
+[brew, [done]],
+[done, [start]]].
+
+[[start, []],
+[empty, [noWater]],
+[full, [water]],
+[ready, [water, capsule]],
+[brew, [water, capsule, button]],
+[done, [coffee]]].
+
+start.
+
+ef(and(coffee, neg(and(capsule, and(button, water))))).
