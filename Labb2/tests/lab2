@@ -1,0 +1,146 @@
+verify(InputFileName) :- see(InputFileName),
+    read(Prems), read(Goal), read(Proof),
+    seen,
+    (valid_proof(Prems, Goal, Proof), write('yes')); write('no').
+
+%X = [[A, and(p, q), premise], [_, p, andel1(_A)]].
+
+valid_proof(Prems, Goal, Proof):-
+    check_goal(Goal,Proof),
+    check_proof(Prems,Proof,[]), !.
+
+%Kollar om målet är det sista raden av beviset  
+check_goal(Goal,Proof):-
+    last(Proof,LastRow),
+    nth1(2,LastRow,Goal).
+
+%Addera på en lista 
+addList(H,CheckedList,NewList):-
+    appendEl(H,CheckedList,NewList).
+
+%leka med koden.
+%X = [[A, and(p, q), premise], [_, p, andel1(_A)]].
+
+%append i listan
+appendEl(X,[],[X]).
+appendEl(X,[H|T],[H|Y]):-
+    appendEl(X,T,Y).
+
+%Kollar själva beviset 
+check_proof(_,[],_).
+check_proof(Prems,[H|T],CheckedList):-
+    check_rule(Prems,H,CheckedList),
+    addList(H,CheckedList,NewList),
+    check_proof(Prems,T,NewList).
+
+%Går till sista raden i beviset
+goToLastLine([X], X).
+goToLastLine([_|Tail], NextLine) :- goToLastLine(Tail, NextLine).    
+
+%premise
+check_rule(Prems,[_,X, premise],_):-
+    member(X,Prems).
+    %writeln('Premiss uppfyllt').
+
+%andint
+check_rule(_,[_,and(X,Y),andint(A,B)],CheckedList):-
+    member([A,X,_],CheckedList),
+    member([B,Y,_],CheckedList).
+    %writeln('AND intro uppfyllt').
+
+%andel1
+check_rule(_,[_,X,andel1(A)],CheckedList):-
+    member( [A,and(X,_),_], CheckedList).
+    %writeln('AND eli1 uppfyllt').
+
+%andel2
+check_rule(_,[_,X,andel2(A)],CheckedList):-
+    member([A,and(_,X),_], CheckedList).
+   % writeln('AND eli2 uppfyllt').
+
+%orint1
+check_rule(_,[_,or(X,_),orint1(A)],CheckedList):-
+    member([A,X,_],CheckedList).
+   % writeln('OR intro1 uppfyllt').
+
+%orint2
+check_rule(_,[_,or(_,X),orint2(A)],CheckedList):-
+    member([A,X,_],CheckedList).
+   % writeln('OR intro2 uppfyllt').
+
+%orel BOX
+check_rule(_, [_, X, orel(A,B,C,D,E)], CheckedList) :- 
+    member([A, or(Y, Z), _], CheckedList),
+	member(Box1, CheckedList), member(Box2, CheckedList),
+	member([B, Y, assumption], Box1), goToLastLine(Box1, Last1), Last1 = [C, X, _],
+	member([D, Z, assumption], Box2), goToLastLine(Box2, Last2), Last2 = [E, X, _].
+    %writeln('OR eli uppfyllt').
+
+%impint BOX
+check_rule(_, [_, imp(X, Y), impint(A,B)], CheckedList) :- 
+    member(Box, CheckedList),
+	member([A, X, assumption], Box),
+	goToLastLine(Box, Last),
+	Last = [B, Y, _].
+    %writeln('IMPLI intro uppfyllt'). TA DENNA SOM EXEMPEL. 
+
+%impel
+check_rule(_,[_,X,impel(A,B)],CheckedList):-
+    member([A,Y,_],CheckedList),
+    member([B,imp(Y,X),_], CheckedList).
+   % writeln('IMPLI eli uppfyllt').
+
+%negint BOX
+check_rule(_, [_, neg(X), negint(A,B)], CheckedList) :- 
+    member(Box, CheckedList),
+	member([A, X, assumption], Box),
+    goToLastLine(Box, Last),
+	Last = [B, cont, _].
+    %writeln('NEG intro uppfyllt').
+
+%negel
+check_rule(_,[_,cont,negel(A,B)], CheckedList):-
+    member([A,X,_], CheckedList),
+    member([B,neg(X),_], CheckedList).
+    %writeln('NEG eli uppfyllt'). 
+
+%contel
+check_rule(_,[_,_,contel(A)],CheckedList):-
+    member([A,cont,_],CheckedList).
+    %writeln('CONT eli uppfyllt').
+
+%negnegint
+check_rule(_,[_,neg(neg(X)), negnegint(A)], CheckedList):-
+    member([A,X,_], CheckedList).
+    %writeln('NEG NEG intro uppfyllt').
+
+%negnegel
+check_rule(_,[_,X, negnegel(A)], CheckedList):-
+    member([A,neg(neg(X)),_], CheckedList).
+    %writeln('NEG NEG eli uppfyllt').
+
+%copy
+check_rule(_,[_,X,copy(A)],CheckedList):-
+    member([A,X,_],CheckedList).
+    %writeln('COPY uppfyllt').
+
+%mt
+check_rule(_,[_,neg(X),mt(A,B)],CheckedList):-
+    member([A,imp(X,Y),_],CheckedList),
+    member([B,neg(Y),_],CheckedList).
+    %writeln('MT uppfyllt').
+
+%pbc BOX
+check_rule(_, [_, X, pbc(A,B)], CheckedList) :- 
+    member(Box, CheckedList),
+	member([A, neg(X), assumption], Box),
+	goToLastLine(Box, Last),
+	Last = [B, cont, _].
+    %writeln('PBC uppfyllt').
+
+%lem
+check_rule(_,[_,or(X,neg(X)),lem],_).
+%writeln('LEM uppfyllt').
+
+%BOX kolla först om det är assumption och sedan gå igenom boxen.
+check_rule(Prems, [[A, _, assumption]|Box], CheckedList) :- check_proof(Prems, Box, [[A, _, assumption]|CheckedList]).

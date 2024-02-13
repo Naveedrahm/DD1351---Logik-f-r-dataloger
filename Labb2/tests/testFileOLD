@@ -1,0 +1,130 @@
+% Takes an input file and saves the files premisses, goal and the proof
+% in the variables Prems, Goal and prrof. These are sent to predicates
+% that start the control
+
+%__________________ Main code ________________
+
+verify(InputFileName) :- see(InputFileName),
+    read(Prems),read(Goal), read(Proof),
+    seen,
+    valid_proof(Prems, Goal, Proof).
+
+% Controls if the proof is valid & if the goal matches the ending
+valid_proof(Prems, Goal, Proof):-
+    check_goal(Goal,Proof),
+    check_proof(Prems,Proof,[]), !.
+
+% Checks if the goal is the same as the last line in the proof.
+check_goal(Goal,Proof):-
+    last(Proof,LastRow),
+    nth1(2,LastRow,Goal).
+
+%____________________Add list functions____________________%
+
+% Puts an element in the list
+addList(H,CheckedList,NewList):-
+    appendEl(H,CheckedList,NewList).
+    % print(CheckedList,NewList).
+
+%Puts an element last in a list
+appendEl(X,[],[X]).
+appendEl(X,[H|T],[H|Y]):-
+    appendEl(X,T,Y).
+
+%__________________ Checks the proof ______________________%
+check_proof(_,[],_).
+check_proof(Prems,[H|T],CheckedList):-
+    check_rule(Prems,H,CheckedList),
+    addList(H,CheckedList,NewList),
+    check_proof(Prems,T,NewList).
+
+% ___Premiss rule
+% X (premiss) needs to be Premiss line
+check_rule(Prems,[_,X, premise],_):-
+    member(X,Prems),
+    writeln('premiss uppfyllt').
+
+%--- Assumption -----% 
+check_rule(Prems,_,[[[_,]]])
+
+%___And implication
+%
+check_rule(_,[_,and(X,Y),andint(A,B)],CheckedList):-
+    member([A,X,_],CheckedList),
+    member([B,Y,_],CheckedList),
+    writeln('AND imp uppfyllt').
+
+%--And elimination 1
+check_rule(_,[_,X,andel1(A)],CheckedList):-
+    member( [A,and(X,_),_], CheckedList),
+    writeln('AND EL1 uppfyllt').
+
+%--And elimination 2
+check_rule(_,[_,X,andel2(A)],CheckedList):-
+    member([A,and(_,X),_], CheckedList),
+    writeln('AND EL2 uppfyllt').
+
+% ___OR rule___
+% Looks if
+checkrule(_,[_,or(X,_),orint1(A)],CheckedList):-
+    member([A,X,_],CheckedList),
+    writeln('OR1 uppfyllt').
+
+checkrule(_,[_,or(_,X),orint2(A)],CheckedList):-
+    member([A,X,_],CheckedList),
+    %writeln('OR2 uppfyllt').
+
+%----- OR EL-----%
+
+%----- Imp INT ----%
+
+%___ implication elimination___
+% Check if A and B are in an Imp(A,B)
+% Find the row for A and put it in Y
+% Find impel(A,B) inside CheckedList
+check_rule(_,[_,X,impel(A,B)],CheckedList):-
+    member([A,Y,_],CheckedList),% Hitta raden för A och lägg i Y
+    member([B,imp(Y,X),_], CheckedList).
+    %writeln('Imp EL uppfyllt').
+
+%---- NEG Int ---%
+
+%----- NEG EL ----%
+checkrule(_,[_,cont,negel(A,B)], CheckedList):-
+    member([A,X,_], CheckedList),
+    member([B,neg(X),_], CheckedList),
+    write('NEG El uppgyllt').
+
+%--- NEG NEG EL ---% 
+checkrule(_, [_, X, negnegel(A)], CheckedList):-
+    member([A, neg(neg(X)),_], CheckedList),
+    write('NEG NEG El uppfyllt').
+
+%---- NEG NEG Int ----%
+checkrule(_,[_,neg(neg(X)), negnegint(A)], CheckedList):-
+    member([A,X,_], CheckedList),
+    write('NEG NEG Int uppfyllt').
+
+%___ Copy Rule___
+check_rule(_,[_,X,copy(A)],CheckedList):-
+    member([A,X,_],CheckedList),
+    %writeln('COPY uppfyllt').
+
+%----- PBC ------%
+check_rule(_,[],_),
+    %writeln('PBC uppfyllt').
+
+%___Contradiction Elimination___
+check_rule(_,[_,_,contel(A)],CheckedList):-
+    member([A,cont,_],CheckedList),
+    %writeln('CONT el uppfyllt').
+
+%___LEM___
+check_rule(_,[_,or(X,neg(X)),lem],_).
+    %writeln('premiss uppfyllt').
+
+%___Modulus Tolerans. if P->Q then not P -> not Q ___
+check_rule(_,[_,neg(X),mt(A,B)],CheckedList):-
+    member([A,imp(X,Y),_],CheckedList),
+    member([B,neg(Y),_],CheckedList).
+    %writeln('premiss uppfyllt').

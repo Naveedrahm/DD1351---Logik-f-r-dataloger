@@ -1,0 +1,162 @@
+
+appendN([],L,L).
+appendN([H|T],L,[H|R]) :- appendN(T,L,R).
+
+appendElN(X, [], [X]).
+appendElN(X, [H | T], [H | Y]) :-
+           appendElN(X, T, Y).
+
+lengthN([],0).
+lengthN([_|T],N) :- lengthN(T,N1), N is N1+1.
+
+nthN(N,L,E) :- nthN(1,N,L,E).
+nthN(N,N,[H|_],H).
+nthN(K,N,[_|T],H) :- K1 is K+1, nthN(K1,N,T,H).
+
+subsetN([], []).
+subsetN([H|T], [H|R]) :- subsetN(T, R).
+subsetN([_|T], R) :- subsetN(T, R).
+
+selectN(X,[X|T],T).
+selectN(X,[Y|T],[Y|R]) :- selectN(X,T,R).
+
+memberN(X,L) :- selectN(X,L,_).
+
+memberchkN(X,L) :- selectN(X,L,_), !.
+
+
+% Uppgifterna 1, 2, 3, 4 skall läsas för godkänt betyg! 
+% Den sista uppgiften ger inga extra poäng.
+% De angivna poängtalen visar ungefärliga svårighetsgraden.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% uppgift 1	(4p)
+% unifiering
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Betrakta denna fråga till ett Prologsystem:
+%
+% ?- T=f(a,Y,Z), T=f(X,X,b).
+%
+% Vilka bindningar presenteras som resultat?
+
+% Ge en kortfattad förklaring till ditt svar!
+% a = X
+% Y = X 
+% Eftersom Y = X blir Y = a också.
+% Z  = b
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% uppgift 2 	(6p)
+% representation 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% En lista är en representation av sekvenser där 
+% den tomma sekvensen representeras av symbolen []
+% och en sekvens bestående av tre heltal 1 2 3 
+% representeras av listan [1,2,3] eller i kanonisk syntax 
+% '.'(1,'.'(2,'.'(3,[]))) eller [1|[2|[3|[]]]]
+
+% Den exakta definitionen av en lista är:
+
+%lists([]).
+%lists([H|T]) :- lists(T).
+
+
+% Vi vill definiera ett predikat som givet en lista som 
+% representerar en sekvens skapar en annan lista som 
+% innehåller alla element som förekommer i inlistan i 
+% samma ordning, men 
+% om ett element har förekommit tidigare i listan skall det 
+% inte vara med i den resulterande listan.
+
+% Till exempel: 
+
+% ?- remove_duplicates([1,2,3,2,4,1,3,4], E).
+%
+% skall generera E=[1,2,3,4]
+
+% Definiera alltså predikatet remove_duplicates/2!
+% Förklara varför man kan kalla detta predikat för en
+% funktion!
+
+remove_duplicates([Head|Tail], R) :- remove_element([Head|Tail], [], R).  %tom lista som ackumilator dvs alla element som vi ska returnera
+
+remove_element([], List, List). %basfall som säger att när hela listan är rensats på dubletter returneras ackumilatorn.
+remove_element([Head|Tail], List, R) :- memberN(Head, List), !, remove_element(Tail, List, R).  % Checkar ifall första finns i ack-listan om det gör iggar den o går den igenom resten.
+remove_element([Head|Tail], List, R) :- appendElN(Head, List, N), remove_element(Tail, N, R).   %Om elementet inte finns i listan från membchk går hit och sen apppend
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% uppgift 3	(6p)
+% rekursion och backtracking  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Definiera predikatet partstring/3 som givet en lista som 
+% första argument genererar en lista F med längden L som 
+% man finner konsekutivt i den första listan!
+% Alla möjliga svar skall kunna presenteras med hjälp av 
+% backtracking om man begär fram dem.
+
+% Till exempel:
+
+% ?- partstring( [ 1, 2 , 3 , 4 ], L, F).
+partstring([], _ ,[]).
+
+partstring([_|T],L,T2) :- partstring(T,_,T2), length(T2,L).
+
+partstring([H|T],L,[H|T2]) :- subs(T, T2), length([H|T2],L), L>0 F \= [] .
+
+% genererar t.ex.F=[4] och L=1
+% eller F=[1,2] och L=2
+% eller också F=[1,2,3] och L=3
+% eller F=[2,3] och L=2 
+% osv.
+% partstring([H|T], L, F) :- partstrings([H|T], [], R).
+% partstrings([H|T], L, F) :- subsetN([H|T], F), length(F, L).
+
+% partstring([_|T], L, F) :- partstring(T, _, F), lengthN(F, L).
+% partstring([H|T], L, F) :-  subs(T, F), lengthN(F, L). % ställer in alla element i f och längden av f. 
+
+subs(_,[]).
+
+subs([H|T], [H|T2]) :- subs(T, T2).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% uppgift 4       (8p)
+% representation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Du skall definiera ett program som arbetar med grafer.
+
+% Föreslå en representation av grafer sådan att varje nod
+% har ett unikt namn (en konstant) och grannarna finns
+% indikerade. 
+
+% Definiera ett predikat som med denna representation och
+% utan att fastna i en loop tar fram en väg som en lista av 
+% namnen på noderna i den ordning de passeras när man utan 
+% att passera en nod mer än en gång går från nod A till nod B!
+% Finns det flera möjliga vägar skall de presenteras 
+% en efter en, om man begär det.
+
+
+edge(a,b).              %skapa edges för för att visa vilka kanter som är emellan
+edge(b,c).
+edge(c,d).
+edge(d,e).
+edge(a,e).
+
+path(X, Y, Path) :- path(X, Y, [X], Path).
+
+path(X, X, Visited, Visited).
+path(X, Z, Visited, Path):- edge(X, N), \+ memberchkN(N, Visited), appendElN(N, Visited, Visited2), path(N, Z, Visited2, Path).
+
+
+
+
+
